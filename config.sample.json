@@ -1,0 +1,16 @@
+{
+  "localhost": {
+    "host": "localhost",
+    "port": 22,
+    "username": "iida",
+    "password": null,
+    "privatekey": "/Users/iida/.ssh/id_rsa"
+  },
+  "bastion": {
+    "host": "192.168.1.120",
+    "port": 22,
+    "username": "user",
+    "password": "password",
+    "privatekey": null
+  }
+}

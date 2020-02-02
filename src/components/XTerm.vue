@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+
 <template>
   <div class="box" v-bind:style="styleObject">
     <div id="header">header:</div>
@@ -15,10 +16,76 @@ require("xterm/css/xterm.css");
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
+import io from "socket.io-client";
+
 const MIN_WIDTH = 640;
 const MAX_WIDTH = 2048;
 const MIN_HEIGHT = 480;
 const MAX_HEIGHT = 1024;
+
+let errorExists = false;
+
+function createSocket(term) {
+  // connect backend websocket
+  const socket = io.connect(null, {
+    // transports: ['websocket'],
+    // allowUpgrades: false,
+    pingTimeout: 30000
+  });
+
+  // Browser -> Backend
+  term.onData(function(data) {
+    socket.emit("data", data);
+  });
+
+  // Backend -> Browser
+  socket.on("data", function(data) {
+    term.write(data);
+  });
+
+  socket.on('request-resize', function() {
+    socket.emit('resize', {cols: term.cols, rows: term.rows});
+  });
+
+  socket.on("ssherror", function(data) {
+    console.log(data);
+    errorExists = true;
+  });
+
+  socket.on("disconnect", function(err) {
+    if (!errorExists) {
+      status.style.backgroundColor = "red";
+      status.innerHTML = "WEBSOCKET SERVER DISCONNECTED: " + err;
+    }
+    // socket.io.reconnection(false);
+  });
+
+  socket.on("error", function(err) {
+    if (!errorExists) {
+      status.style.backgroundColor = "red";
+      status.innerHTML = "ERROR: " + err;
+    }
+  });
+
+  return socket;
+}
+
+function generateUuid() {
+  // https://github.com/GoogleChrome/chrome-platform-analytics/blob/master/src/internal/identifier.js
+  // const FORMAT: string = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+  const chars = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.split('');
+  for (let i = 0, len = chars.length; i < len; i++) {
+    switch (chars[i]) {
+    case 'x':
+      chars[i] = Math.floor(Math.random() * 16).toString(16);
+      break;
+    case 'y':
+      chars[i] = (Math.floor(Math.random() * 4) + 8).toString(16);
+      break;
+    }
+  }
+  return chars.join('');
+}
 
 export default {
   name: "XTerm",
@@ -76,6 +143,11 @@ export default {
     this.terminal = term;
     this.fitAddon = fitAddon;
     this.fit();
+
+    const socket = createSocket(term);
+    socket.emit('request-connect', {host: 'azure'});
+    socket.emit('join', {room: 'localhost', name: 'iida', userid: generateUuid()});
+    this.socket = socket;
   },
   beforeDestroy() {
     this.terminal.destroy();
@@ -84,12 +156,16 @@ export default {
     fit() {
       const term = this.terminal;
       const fitAddon = this.fitAddon;
+      const socket = this.socket;
       term.element.style.display = "none";
       setTimeout(function() {
         fitAddon.fit();
         term.element.style.display = "";
         term.refresh(0, term.rows - 1);
-      }, 100);
+        if (socket) {
+          socket.emit('resize', {cols: term.cols, rows: term.rows});
+        }
+      }, 0);
     }
   }
 };
@@ -117,7 +193,7 @@ export default {
 #terminal-container {
   display: block;
   width: 100%;
-  height: calc(100% - 20px);
+  height: calc(100% - 40px);
   margin: 0 auto;
 }
 
@@ -136,7 +212,7 @@ export default {
 
 #status {
   display: block;
-  height: 20 px;
+  height: 100%;
   color: rgb(240, 240, 240);
   background-color: rgb(50, 50, 50);
   border-color: white;
