@@ -120,6 +120,7 @@ io.on('connection', function(socket) {
   ssh
     .on('close', function() {
       socket.emit('data', '\r\n*** SSH CONNECTION CLOSED ***\r\n');
+      socket.emit('ssh-closed');
       sshConnected = false;
     });
 
@@ -127,6 +128,7 @@ io.on('connection', function(socket) {
     .on('error', function(err) {
       console.log(err);
       socket.emit('data', '\r\n*** SSH CONNECTION ERROR: ' + err.message + ' ***\r\n');
+      socket.emit('ssh-error', err);
       sshConnected = false;
     });
 

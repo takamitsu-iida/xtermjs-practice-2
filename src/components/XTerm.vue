@@ -1,11 +1,10 @@
 /* eslint-disable no-unused-vars */
-
 <template>
-  <div class="box" v-bind:style="styleObject">
+  <div class="box" v-bind:style="styleObject" ref="box">
     <div id="header">header:</div>
     <div id="terminal-container" ref="container"></div>
     <div id="bottomdiv">
-      <div id="status">status: ( {{ width }} , {{ height }} )</div>
+      <div id="status" ref="status">status: ( {{ width }} , {{ height }} )</div>
     </div>
   </div>
 </template>
@@ -23,9 +22,9 @@ const MAX_WIDTH = 2048;
 const MIN_HEIGHT = 480;
 const MAX_HEIGHT = 1024;
 
-let errorExists = false;
+function createSocket(vm) {
+  const term = vm.terminal;
 
-function createSocket(term) {
   // connect backend websocket
   const socket = io.connect(null, {
     // transports: ['websocket'],
@@ -43,27 +42,37 @@ function createSocket(term) {
     term.write(data);
   });
 
-  socket.on('request-resize', function() {
-    socket.emit('resize', {cols: term.cols, rows: term.rows});
+  socket.on("request-resize", function() {
+    socket.emit("resize", {cols: term.cols, rows: term.rows});
   });
 
-  socket.on("ssherror", function(data) {
-    console.log(data);
-    errorExists = true;
+  socket.on("ssh-error", function(err) {
+    console.log(err);
+    const status_element = vm.$refs.status;
+    if (status_element) {
+      status_element.style.backgroundColor = "red";
+      status_element.innerHTML = "SSH ERROR";
+    }
+  });
+
+  socket.on("ssh-closed", function(data) {
+    vm.$destroy();
   });
 
   socket.on("disconnect", function(err) {
-    if (!errorExists) {
-      status.style.backgroundColor = "red";
-      status.innerHTML = "WEBSOCKET SERVER DISCONNECTED: " + err;
+    const status_element = vm.$refs.status;
+    if (status_element) {
+      status_element.style.backgroundColor = "red";
+      status_element.innerHTML = "WEBSOCKET SERVER DISCONNECTED: " + err;
     }
     // socket.io.reconnection(false);
   });
 
   socket.on("error", function(err) {
-    if (!errorExists) {
-      status.style.backgroundColor = "red";
-      status.innerHTML = "ERROR: " + err;
+    const status_element = vm.$refs.status;
+    if (status_element) {
+      status_element.style.backgroundColor = "red";
+      status_element.innerHTML = "ERROR: " + err;
     }
   });
 
@@ -144,13 +153,15 @@ export default {
     this.fitAddon = fitAddon;
     this.fit();
 
-    const socket = createSocket(term);
-    socket.emit('request-connect', {host: 'azure'});
-    socket.emit('join', {room: 'localhost', name: 'iida', userid: generateUuid()});
+    const socket = createSocket(this);
+    socket.emit("request-connect", {host: "localhost"});
+    socket.emit("join", {room: "localhost", name: "iida", userid: generateUuid()});
     this.socket = socket;
   },
   beforeDestroy() {
-    this.terminal.destroy();
+    this.terminal.dispose();
+    this.$refs.box.parentNode.removeChild(this.$refs.box);
+    this.$emit("destroy");
   },
   methods: {
     fit() {
@@ -163,7 +174,7 @@ export default {
         term.element.style.display = "";
         term.refresh(0, term.rows - 1);
         if (socket) {
-          socket.emit('resize', {cols: term.cols, rows: term.rows});
+          socket.emit("resize", {cols: term.cols, rows: term.rows});
         }
       }, 0);
     }

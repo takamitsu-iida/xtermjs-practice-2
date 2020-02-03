@@ -22,6 +22,24 @@ npm install utf8
 
 このやり方はイマイチなので、もう少しスマートな方法を模索したい。
 
+## モジュールを入れ直す
+
+コンパイルで`code ELIFECYCLE`エラーが出るときはモジュールを入れ直す。
+
+```bash
+#既存jsモジュール群を全削除
+rm -rf node_modules
+
+#lockファイルを削除
+rm package-lock.json yarn.lock
+
+#npmのキャッシュをクリア
+npm cache clear --force
+
+#jsモジュール群をインストール
+npm install
+```
+
 ## eslint
 
 <https://github.com/google/eslint-config-google>

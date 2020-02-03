@@ -2,13 +2,12 @@
   <div>
     <input v-model.number="width" type="number" />
     <input v-model.number="height" type="number" />
+    parent parameter {{ width }} , {{ height }}
     <XTerm
       v-bind:termWidth="width"
-      v-on:update-width="width = $event"
       v-bind:termHeight="height"
-      v-on:update-height="height = $event"
+      v-on:destroy="destroy"
     ></XTerm>
-    parent parameter {{ width }} , {{ height }}
   </div>
 </template>
 
@@ -16,7 +15,7 @@
 import XTerm from "./components/XTerm.vue";
 
 export default {
-  name: "app",
+  // name: "app",
   components: {
     XTerm: XTerm
   },
@@ -25,6 +24,11 @@ export default {
       width: 640,
       height: 480
     };
+  },
+  methods: {
+    destroy: function() {
+      this.$el.parentNode.removeChild(this.$el);
+    }
   }
 };
 </script>
@@ -34,8 +38,8 @@ export default {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  /* text-align: center; */
   color: #2c3e50;
-  margin-top: 60px;
+  margin-top: 10px;
 }
 </style>
