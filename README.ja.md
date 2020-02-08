@@ -16,29 +16,128 @@ npm install utf8
 
 サーバのスクリプトは`server.js`をルートディレクトリに配備する。
 
-`npm run build` でクライアント側をコンパイルする。
+`npm run serve` でクライアント側を起動する。
 
 `node server.js` でサーバを起動する。
-
-このやり方はイマイチなので、もう少しスマートな方法を模索したい。
 
 ## モジュールを入れ直す
 
 コンパイルで`code ELIFECYCLE`エラーが出るときはモジュールを入れ直す。
 
 ```bash
-#既存jsモジュール群を全削除
 rm -rf node_modules
-
-#lockファイルを削除
 rm package-lock.json yarn.lock
-
-#npmのキャッシュをクリア
 npm cache clear --force
-
-#jsモジュール群をインストール
 npm install
 ```
+
+それでもダメなら、開発系ツールを最新にする。
+
+```bash
+npm install -D webpack@latest
+npm install -D webpack-cli@latest
+npm install -D webpack-dev-server@latest
+```
+
+## イベントを契機に動的にVueインスタンスを作る
+
+ボタンを押したら<div>を動的に作って、そこにVueのインスタンスをマウントするだけなのだが、ハマりどころがあるので注意したい。
+
+子コンポーネントとの間でデータのやり取りがない場合は簡単。
+ボタンのイベントで以下のようなopen関数を呼べばいい。
+
+```js
+export default {
+  name: "MainApp",
+  components: {
+    XTerm: XTerm
+  },
+  methods: {
+    open: function(event) {
+      // create new div element
+      const div = document.createElement("div");
+      this.$refs.xterm.appendChild(div);
+
+      new Vue({
+        render: h => h(XTerm)
+      }).$mount(div);
+    }
+  }
+};
+```
+
+親子関係でデータのやり取りが発生する場合は少々ややこしい。
+初期値としてpropsにデータを渡したくなるので、このパターンを使いたくなるのだが・・・
+
+```js
+export default {
+  name: "MainApp",
+  components: {
+    XTerm: XTerm
+  },
+  methods: {
+    open: function(event) {
+      this.count += 1;
+
+      // create new div element
+      const div = document.createElement("div");
+      div.id = "xterm-" + this.count;
+      this.$refs.xterm.appendChild(div);
+
+      // if you got,
+      //   [Vue warn]: You are using the runtime-only build of Vue where the template compiler is not available.
+      // then additional config is needed in vue.config.js
+      new Vue({
+        components: {
+          XTerm: XTerm
+        },
+        template: `
+          <XTerm
+            v-bind:termWidth="width"
+            v-bind:termHeight="height"
+            v-on:destroy="destroy"
+          ></XTerm>
+        `,
+        data: function() {
+          return {
+            width: 640,
+            height: 480,
+          }
+        },
+        methods: {
+          destroy: function() {
+            console.log("destroied");
+          }
+        }
+      }).$mount(div);
+    }
+  }
+};
+```
+
+これだけだと動かない。
+動的に生成するVueインスタンスでtemplateを書いてしまうと、コンパイル処理で失敗してしまう。
+対策として`vue.config.js`に以下の設定を加える。
+
+`vue.config.js`
+
+```js
+module.exports = {
+  devServer: {
+    port: 8080,
+    disableHostCheck: true,
+  },
+  configureWebpack: {
+    resolve: {
+      alias: {
+        'vue$': 'vue/dist/vue.esm.js'
+      }
+    }
+  },
+};
+```
+
+詳細は、完全ビルドとランタイム限定ビルド、でマニュアルを調べると出てくる。
 
 ## eslint
 
