@@ -1,6 +1,7 @@
 "use strict";
 
 const SshClient = require("ssh2").Client;
+const Telnet = require("telnet-client")
 const utf8 = require("utf8");
 
 const fs = require("fs");
@@ -62,13 +63,11 @@ io.origins((origin, callback) => {
 let roomUsers = [];
 
 function emitRoomUsers() {
-  // broadcast to control room
+  // broadcast roomUsers object to control room
   io.sockets.in("control").emit("roomUsers", roomUsers);
 };
 
-io.on("connection", function(socket) {
-  console.log("new socket.io connection created");
-
+function createSshClient(socket) {
   const ssh = new SshClient();
   let sshConnected = false;
   ssh.on("ready", function() {
@@ -146,14 +145,74 @@ io.on("connection", function(socket) {
     sshConnected = false;
   });
 
+  return ssh;
+}
+
+function createTelnetClient(socket) {
+  var telnet = new Telnet()
+
+  telnet.on("connect", function() {
+    telnet.shell(function(stream) {
+      console.log(stream);
+      stream.on("data", function(d) {
+        try {
+          let data = utf8.decode(d.toString("binary"));
+          const room = socket.usrobj.room;
+          if (room) {
+            if (data) {
+              io.sockets.in(room).emit("data", data);
+            }
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      });
+
+      // From Browser->Backend, send to ssh stream
+      socket.on("data", function(data) {
+        stream.write(data);
+      });
+
+    });
+  });
+
+  telnet.on("timeout", function() {
+    console.log("telnet timeout!")
+    telnet.end()
+  });
+
+  telnet.on("close", function() {
+    console.log("telnet closed")
+  });
+
+  // these parameters are just examples and most probably won't work for your use-case.
+  var params = {
+    host: '127.0.0.1',
+    port: 23,
+    timeout: 1500
+  }
+  telnet.connect(params)
+}
+
+io.on("connection", function(socket) {
+  console.log("new socket.io connection created");
+
   socket.on("request-connect", function(data) {
+    // const telnet = createTelnetClient(socket);
+    // return;
+
     const host = data.host;
     const param = config[host];
     // console.log(param);
     if (param == null) {
+      socket.emit(
+        "data",
+        "\r\n*** CONFIG.JSON IS MISSING ***\r\n"
+      );
       return;
     }
 
+    const ssh = createSshClient(socket);
     if (param.password != null) {
       ssh.connect({
         keepaliveInterval: 20000,
@@ -178,7 +237,7 @@ io.on("connection", function(socket) {
     }
   });
 
-  // user send 'join' message with json object usrobj
+  // user send 'join' message with usrobj
   // store the object in socket object
   // it is something like {room: "localhost", name: "iida", userid: "xxxxxxxx-xxxx-4xx"}
   socket.on("join", function(usrobj) {

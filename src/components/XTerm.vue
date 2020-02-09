@@ -1,10 +1,11 @@
 <template>
   <div id="XTerm" ref="XTerm" v-bind:style="styleObject">
-    <div id="header">header:</div>
-    <div id="terminal-container" ref="container"></div>
-    <div id="bottomdiv">
-      <div id="status" ref="status">status: ( {{ width }} , {{ height }} )</div>
+    <div id="header">
+      <span><a href="#" v-on:click.stop.prevent="close">x</a></span>
+      <span>( {{ width }} , {{ height }} )</span>
+      <span id="error_message" ref="error_message" v-if="error_message">{{ error_message }}</span>
     </div>
+    <div id="terminal-container" ref="container"></div>
   </div>
 </template>
 
@@ -52,33 +53,24 @@ function createSocket(vm) {
 
   socket.on("ssh-error", function(err) {
     console.log(err);
-    const status_element = vm.$refs.status;
-    if (status_element) {
-      status_element.style.backgroundColor = "red";
-      status_element.innerHTML = "SSH ERROR";
-    }
+    vm.error_message = "SSH ERROR: " + err;
   });
 
   socket.on("ssh-closed", function(data) {
     vm.$destroy();
-    socket.close();
+  });
+
+  socket.on("connect", function() {
+    vm.error_message = "";
   });
 
   socket.on("disconnect", function(err) {
-    const status_element = vm.$refs.status;
-    if (status_element) {
-      status_element.style.backgroundColor = "red";
-      status_element.innerHTML = "WEBSOCKET SERVER DISCONNECTED: " + err;
-    }
+    vm.error_message = "WEBSOCKET DISCONNECTED: " + err;
     // socket.io.reconnection(false);
   });
 
   socket.on("error", function(err) {
-    const status_element = vm.$refs.status;
-    if (status_element) {
-      status_element.style.backgroundColor = "red";
-      status_element.innerHTML = "ERROR: " + err;
-    }
+    vm.error_message = "ERROR: " + err;
   });
 
   return socket;
@@ -89,11 +81,11 @@ export default {
   props: {
     termWidth: {
       type: Number,
-      default: 640
+      default: 800
     },
     termHeight: {
       type: Number,
-      default: 480
+      default: 600
     },
     host: {
       type: String,
@@ -102,7 +94,8 @@ export default {
   },
   data: function() {
     return {
-      userid: null
+      userid: null,
+      error_message: "WEBSOCKET DISCONNECTED"
     }
   },
   computed: {
@@ -140,11 +133,7 @@ export default {
     }
   },
   mounted: function() {
-    console.log(this.host);
-    console.log(this.termWidth);
-    console.log(this.termHeight);
-
-    const term = new Terminal();
+    const term = new Terminal(props.xterm);
     this.terminal = term;
     term.open(this.$refs.container);
     const fitAddon = new FitAddon();
@@ -158,6 +147,7 @@ export default {
 
     // this is a test
     socket.emit("request-connect", {host: "localhost"});
+    // socket.emit("request-connect", {host: "csr1000v"});
 
     this.userid = generateUuid();
     socket.emit("join", {room: "localhost", name: "iida", userid: this.userid});
@@ -165,8 +155,15 @@ export default {
     term.focus();
   },
   beforeDestroy() {
+    try {
+      this.socket.close();
+    } catch (e) {
+      console.log(e);
+    }
     this.terminal.dispose();
-    this.$refs.XTerm.parentNode.removeChild(this.$refs.XTerm);
+    if (this.$refs.XTerm.parentNode) {  // hot reload might remove element automatically
+      this.$refs.XTerm.parentNode.removeChild(this.$refs.XTerm);
+    }
   },
   methods: {
     fit() {
@@ -181,67 +178,75 @@ export default {
         if (socket) {
           socket.emit("resize", {cols: term.cols, rows: term.rows});
         }
-      }, 0);
+      }, 10);
+    },
+    close() {
+      this.$destroy();
     }
   }
 };
 </script>
 
 <style scoped>
+* {
+  box-sizing: border-box;
+}
+
 #XTerm {
   position: relative;
-  box-sizing: border-box;
-  padding-top: 20px;    /* for #header */
-  padding-bottom: 20px; /* for #bottomdiv */
+  padding-top: 24px; /* for #header */
   border: 0px;
   margin-top: 10px;
 }
 
 #header {
   position: absolute;
-  box-sizing: border-box;
   left: 0;
   top: 0;
-  color: rgb(240, 240, 240);
-  background-color: rgb(0, 128, 0);
   width: 100%;
-  height: 20px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 0 0 10px;
+  color: rgb(240, 240, 240);
+  background-color: gray;
   border-color: white;
   border-style: none none solid none;
   border-width: 1px;
   z-index: 99;
 }
+#header a {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0;
+  margin: 0;
+  border-color: white;
+  border-style: none none solid none;
+  border-width: 1px;
+  background-color:#f00;
+  color: #fff;
+  text-align: center;
+  display: inline-block;
+  /* border-radius: 0%; */
+  text-decoration: none;
+  z-index: 100;
+}
+#header a:hover {
+  text-decoration: none;
+}
+
+#error_message {
+  background-color: red;
+  color: white;
+}
 
 #terminal-container {
-  box-sizing: border-box;
   width: 100%;
   height: 100%;
   /* height: calc(100% - 20px - 20px); */
   margin: 0 auto;
-}
-
-#bottomdiv {
-  position: absolute;
-  box-sizing: border-box;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 20px;
-  border: 0px;
-  padding: 0px;
-  background-color: rgb(50, 50, 50);
-  z-index: 99;
-}
-
-#status {
-  width: 100%;
-  height: 100%;
-  color: rgb(240, 240, 240);
-  background-color: rgb(50, 50, 50);
-  text-align: left;
-  border-color: white;
-  border-style: solid none none none;
-  border-width: 1px;
-  z-index: 100;
 }
 </style>

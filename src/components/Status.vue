@@ -1,6 +1,6 @@
 <template>
   <div id="Status">
-    <!-- status -->
+    <!-- show message if error occurred -->
     <div id="error_message" v-if="error_message">{{ error_message }}</div>
 
     <!-- table -->
@@ -19,7 +19,7 @@
           <td>{{ user.room }}</td>
           <td>{{ user.name }}</td>
           <td class="button">
-            <button v-on:click.stop.prevent.shift.exact="onButton(user)">?</button>
+            <button v-show="user.room !== 'control'" v-on:click.stop.prevent="onButton(user, $event)">?</button>
           </td>
         </tr>
       </tbody>
@@ -82,12 +82,13 @@ export default {
     this.socket.emit("join", {room: "control", name: window.navigator.userAgent, userid: this.userid});
   },
   beforeDestroy: function() {
-    this.socket.close();
+    try {
+      this.socket.close();
+    } catch (e) {}
   },
   methods: {
-    onButton: function(user) {
-      console.log(user);
-      document.activeElement.blur();
+    onButton: function(user, event) {
+      event.target.blur();
     }
   }
 };

@@ -5,10 +5,10 @@
     <br />
 
     <select v-model="host">
-      <option disabled value="">Please select one</option>
-      <option>localhost</option>
-      <option>B</option>
-      <option>C</option>
+      <option disabled value="">Please select</option>
+      <option v-for="(host, index) in hosts" v-bind:key="index" v-bind:value="host">
+        {{ host }}
+      </option>
     </select>
     <span>Selected: {{ host }}</span>
     <br />
@@ -40,9 +40,10 @@ export default {
   },
   data: function() {
     return {
-      width: 640,
-      height: 480,
+      width: 800,
+      height: 600,
       host: "localhost",
+      hosts: ["localhost", "azure", "csr1000v"],
       roomUsers: []
     };
   },
@@ -73,10 +74,10 @@ export default {
 
 <style>
 #App {
-  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.9em;
+  font-family: Menlo, Monaco, 'Courier New', monospace, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
-  margin-top: 10px;
 }
 </style>

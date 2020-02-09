@@ -139,6 +139,34 @@ module.exports = {
 
 詳細は、完全ビルドとランタイム限定ビルド、でマニュアルを調べると出てくる。
 
+最終的にはこれに落ち着いた。
+
+`h => h(XTerm)` のhはrenderEement関数なので、その第２引数としてデータを渡せばよい。
+
+```js
+ methods: {
+    open: function(event) {
+      const div = document.createElement("div");
+      this.$refs.xterm.appendChild(div);
+      const self = this;
+      new Vue({
+        // render: h => h(XTerm),
+        // h is createElement function
+        // see, https://jp.vuejs.org/v2/guide/render-function.html#createElement-%E5%BC%95%E6%95%B0
+        render: function(createElement) {
+          return createElement(XTerm, {
+            props: {
+              termWidth: self.width,
+              termHeight: self.height,
+              host: self.host
+            }
+          });
+        }
+      }).$mount(div);
+      event.target.blur();  // unfocus to avoid duplicate open by return key
+    }
+```
+
 ## eslint
 
 <https://github.com/google/eslint-config-google>
