@@ -10,6 +10,9 @@ const path = require("path");
 const express = require("express");
 const http = require("http");
 
+// By default, a maximum of 10 listeners can be registered for any single event.
+require('events').EventEmitter.defaultMaxListeners = 20;
+
 // config.json is not included in git repository.
 //   1. copy config.sample.json config.json
 //   2. edit it
@@ -83,8 +86,6 @@ function createSshClient(socket) {
         return;
       }
 
-      // stream.setEncoding('utf-8');
-
       // From Browser->Backend, send to ssh stream
       socket.on("data", function(data) {
         if (sshConnected) {
@@ -108,12 +109,10 @@ function createSshClient(socket) {
         // socket.emit('data', utf8.decode(d.toString('binary')));
         // socket.broadcast.emit('data', utf8.decode(d.toString('binary')));
         try {
-          let data = utf8.decode(d.toString("binary"));
+          const data = utf8.decode(d.toString("binary"));
           const room = socket.usrobj.room;
-          if (room) {
-            if (data) {
-              io.sockets.in(room).emit("data", data);
-            }
+          if (room && data) {
+            io.sockets.in(room).emit("data", data);
           }
         } catch (e) {
           console.log(e);
@@ -131,7 +130,7 @@ function createSshClient(socket) {
 
   ssh.on("close", function() {
     socket.emit("data", "\r\n*** SSH CONNECTION CLOSED ***\r\n");
-    socket.emit("ssh-closed");
+    socket.emit("backend-closed");
     sshConnected = false;
   });
 
@@ -148,92 +147,102 @@ function createSshClient(socket) {
   return ssh;
 }
 
+
 function createTelnetClient(socket) {
   var telnet = new Telnet()
 
   telnet.on("connect", function() {
-    telnet.shell(function(stream) {
-      console.log(stream);
-      stream.on("data", function(d) {
-        try {
-          let data = utf8.decode(d.toString("binary"));
-          const room = socket.usrobj.room;
-          if (room) {
-            if (data) {
-              io.sockets.in(room).emit("data", data);
-            }
-          }
-        } catch (e) {
-          console.log(e);
-        }
-      });
+    console.log("telnet connect");
 
-      // From Browser->Backend, send to ssh stream
-      socket.on("data", function(data) {
-        stream.write(data);
-      });
-
+    // From Browser->Backend, send to telnet stream
+    socket.on("data", function(data) {
+      telnet.send(data, {}, function(err) {});
     });
+
+  });
+
+  // From Backend->Browser
+  telnet.on("data", function(d) {
+    try {
+      const data = utf8.decode(d.toString("binary"));
+      const room = socket.usrobj.room;
+      if (room && data) {
+        io.sockets.in(room).emit("data", data);
+      }
+    } catch (e) {
+      console.log(e);
+    }
   });
 
   telnet.on("timeout", function() {
-    console.log("telnet timeout!")
-    telnet.end()
+    console.log("telnet timeout")
+    // telnet.end()
   });
 
   telnet.on("close", function() {
     console.log("telnet closed")
+    socket.emit("data", "\r\n*** TELNET CONNECTION CLOSED ***\r\n");
+    socket.emit("backend-closed");
   });
 
-  // these parameters are just examples and most probably won't work for your use-case.
-  var params = {
-    host: '127.0.0.1',
-    port: 23,
-    timeout: 1500
-  }
-  telnet.connect(params)
+  return telnet;
 }
 
 io.on("connection", function(socket) {
   console.log("new socket.io connection created");
 
   socket.on("request-connect", function(data) {
-    // const telnet = createTelnetClient(socket);
-    // return;
+
+    const TEST_TELNET = false;
+    if (TEST_TELNET) {
+      const telnet = createTelnetClient(socket);
+      var params = {
+        host: "localhost", // "10.35.185.2",
+        port: 23,
+        negotiationMandatory: true,
+        ors: "",
+        // timeout in msec
+        // Sets the socket to timeout after the specified number of milliseconds.
+        // of inactivity on the socket.
+        timeout: 0
+      }
+      telnet.connect(params);
+      return;
+    }
 
     const host = data.host;
-    const param = config[host];
-    // console.log(param);
-    if (param == null) {
+    const hostParam = config[host];
+    // console.log(hostParam);
+    if (hostParam == null) {
       socket.emit(
         "data",
         "\r\n*** CONFIG.JSON IS MISSING ***\r\n"
       );
       return;
     }
+    const param = {
+      keepaliveInterval: 20000,
+      host: hostParam.host,
+      port: hostParam.port,
+      username: hostParam.username,
+      password: hostParam.password,
+    }
+    if (hostParam.privatekey) {
+      try {
+        param["privateKey"] = fs.readFileSync(hostParam.privatekey);
+      } catch(err) {
+        console.log(err);
+      }
+    }
 
-    const ssh = createSshClient(socket);
-    if (param.password != null) {
-      ssh.connect({
-        keepaliveInterval: 20000,
-        host: param.host,
-        port: param.port,
-        username: param.username,
-        password: param.password
-      });
-    } else if (param.privatekey != null) {
-      ssh.connect({
-        keepaliveInterval: 20000,
-        host: param.host,
-        port: param.port,
-        username: param.username,
-        privateKey: fs.readFileSync(param.privatekey)
-      });
-    } else {
+    if (!("password in param") && !("privateKey" in param)) {
       socket.emit(
         "data",
         "\r\n*** AUTHENTICATION INFORMATION IS MISSING ***\r\n"
       );
+    } else {
+      const ssh = createSshClient(socket);
+      ssh.connect(param);
     }
   });
 

@@ -56,7 +56,7 @@ function createSocket(vm) {
     vm.error_message = "SSH ERROR: " + err;
   });
 
-  socket.on("ssh-closed", function(data) {
+  socket.on("backend-closed", function(data) {
     vm.$destroy();
   });
 
