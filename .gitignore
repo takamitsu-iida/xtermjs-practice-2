@@ -1,3 +1,6 @@
+/log/*
+/logs/*
+
 .DS_Store
 node_modules
 /dist

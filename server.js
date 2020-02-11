@@ -10,6 +10,8 @@ const path = require("path");
 const express = require("express");
 const http = require("http");
 
+require('date-utils');
+
 // By default, a maximum of 10 listeners can be registered for any single event.
 require('events').EventEmitter.defaultMaxListeners = 20;
 
@@ -105,6 +107,7 @@ function createSshClient(socket) {
       socket.emit("request-resize");
 
       // From Backend->Browser
+      socket.log = "";
       stream.on("data", function(d) {
         // socket.emit('data', utf8.decode(d.toString('binary')));
         // socket.broadcast.emit('data', utf8.decode(d.toString('binary')));
@@ -113,6 +116,7 @@ function createSshClient(socket) {
           const room = socket.usrobj.room;
           if (room && data) {
             io.sockets.in(room).emit("data", data);
+            socket.log += data;
           }
         } catch (e) {
           console.log(e);
@@ -125,6 +129,7 @@ function createSshClient(socket) {
         sshConnected = false;
         console.log("ssh stream closed");
       });
+
     });
   });
 
@@ -132,6 +137,13 @@ function createSshClient(socket) {
     socket.emit("data", "\r\n*** SSH CONNECTION CLOSED ***\r\n");
     socket.emit("backend-closed");
     sshConnected = false;
+
+    // save log
+    const date = new Date().toFormat("YYYYMMDD-HH24MISS");
+    const filename = socket.usrobj.name + "_" + date + ".log";
+    const path = "log/" + filename;
+    fs.writeFileSync(path, socket.log);
+    delete socket.log;
   });
 
   ssh.on("error", function(err) {
