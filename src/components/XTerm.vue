@@ -157,13 +157,16 @@ export default {
   beforeDestroy() {
     try {
       this.socket.close();
-    } catch (e) {
-      console.log(e);
-    }
-    this.terminal.dispose();
-    if (this.$refs.XTerm.parentNode) {  // hot reload might remove element automatically
+      delete this.socket;
+      this.terminal.dispose();
+      delete this.terminal;
+      this.fitAddon.dispose();
+      delete this.fitAddon;
+    } catch (e) { console.log(e); }
+    if (this.$refs.XTerm.parentNode) {  // hot reload remove element automatically
       this.$refs.XTerm.parentNode.removeChild(this.$refs.XTerm);
     }
+    this.$emit("destroy");
   },
   methods: {
     fit() {

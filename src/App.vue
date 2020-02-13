@@ -48,6 +48,9 @@ export default {
     };
   },
   methods: {
+    onDestroy: function() {
+      console.log("destroied");
+    },
     open: function(event) {
       const div = document.createElement("div");
       this.$refs.xterm.appendChild(div);
@@ -62,6 +65,9 @@ export default {
               termWidth: self.width,
               termHeight: self.height,
               host: self.host
+            },
+            on: {
+              destroy: self.onDestroy
             }
           });
         }

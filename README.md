@@ -4,6 +4,8 @@ vue create xtermjs-practice-2
 
 work in progress.
 
+[MEMO in Japanese](README.ja.md)
+
 ## Project setup
 
 ```bash

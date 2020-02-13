@@ -142,9 +142,23 @@ module.exports = {
 最終的にはこれに落ち着いた。
 
 `h => h(XTerm)` のhはrenderEement関数なので、その第２引数としてデータを渡せばよい。
+データとして渡せるのは以下の通り。
+
+|オプション |概要 |
+|---|---|
+|attrs |属性  |
+|class |class属性 |
+|style |style属性 |
+|props |コンポーネントのプロパティ、props down |
+|domProps |DOMプロパティ |
+|on |イベントハンドラ、event up |
+|nativeOn |イベントハンドラ（ブラウザネイティブイベント） |
 
 ```js
  methods: {
+    onDestroy: function() {
+      console.log("destroied");
+    },
     open: function(event) {
       const div = document.createElement("div");
       this.$refs.xterm.appendChild(div);
@@ -159,6 +173,9 @@ module.exports = {
               termWidth: self.width,
               termHeight: self.height,
               host: self.host
+            },
+            on: {
+              destroy: self.onDestroy
             }
           });
         }
