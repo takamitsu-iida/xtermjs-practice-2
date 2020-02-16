@@ -24,6 +24,7 @@
       v-bind:termHeight="height"
     ></XTerm>
     -->
+
   </div>
 </template>
 
@@ -44,7 +45,8 @@ export default {
       height: 600,
       host: "localhost",
       hosts: ["localhost", "azure", "csr1000v"],
-      roomUsers: []
+      roomUsers: [],
+      value1
     };
   },
   methods: {

@@ -20,6 +20,14 @@ npm install utf8
 
 `node server.js` でサーバを起動する。
 
+## vuetifyのインストール
+
+見た目をきれいにするために`vuetify`を使う。
+
+```bash
+vue add vuetify
+```
+
 ## モジュールを入れ直す
 
 コンパイルで`code ELIFECYCLE`エラーが出るときはモジュールを入れ直す。
