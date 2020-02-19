@@ -1,31 +1,64 @@
 <template>
-  <div id="App">
-    <Status></Status>
-    <button v-on:click.prevent="open">Open</button>
-    <br />
+  <v-app>
 
-    <select v-model="host">
-      <option disabled value="">Please select</option>
-      <option v-for="(host, index) in hosts" v-bind:key="index" v-bind:value="host">
-        {{ host }}
-      </option>
-    </select>
-    <span>Selected: {{ host }}</span>
-    <br />
+    <v-app-bar app color="primary" dark>
 
-    <input v-model.number="width" type="number" />
-    <input v-model.number="height" type="number" />
-    parent parameter {{ width }} , {{ height }}
+      <div class="d-flex align-center">
+        <v-img
+          alt="Vuetify Logo"
+          class="shrink mr-2"
+          contain
+          src="terminal.ico"
+          transition="scale-transition"
+          width="40"
+        />
+      </div>
 
-    <div ref="xterm"></div>
-    <!--
-    <XTerm
-      v-bind:termWidth="width"
-      v-bind:termHeight="height"
-    ></XTerm>
-    -->
+      <v-spacer></v-spacer>
 
-  </div>
+      <v-btn
+        href="https://github.com/takamitsu-iida/xtermjs-practice-2"
+        target="_blank"
+        text
+      >
+        <span class="mr-2">src</span>
+        <v-icon>mdi-open-in-new</v-icon>
+      </v-btn>
+
+    </v-app-bar>
+
+    <v-content>
+      <div id="App">
+
+        <Status></Status>
+        <button v-on:click.prevent="open">Open</button>
+        <br />
+
+        <select v-model="host">
+          <option disabled value="">Please select</option>
+          <option v-for="(host, index) in hosts" v-bind:key="index" v-bind:value="host">
+            {{ host }}
+          </option>
+        </select>
+        <span>Selected: {{ host }}</span>
+        <br />
+
+        <input v-model.number="width" type="number" />
+        <input v-model.number="height" type="number" />
+        parent parameter {{ width }} , {{ height }}
+
+        <div ref="xterm"></div>
+        <!--
+        <XTerm
+          v-bind:termWidth="width"
+          v-bind:termHeight="height"
+        ></XTerm>
+        -->
+      </div>
+    </v-content>
+
+  </v-app>
+
 </template>
 
 <script>
@@ -45,8 +78,7 @@ export default {
       height: 600,
       host: "localhost",
       hosts: ["localhost", "azure", "csr1000v"],
-      roomUsers: [],
-      value1
+      roomUsers: []
     };
   },
   methods: {
