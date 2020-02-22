@@ -120,7 +120,7 @@ export default {
     styleObject: function() {
       return {
         width: this.width + "px",
-        height: this.height + "px"
+        height: this.height + "px",
       };
     }
   },
@@ -215,7 +215,7 @@ export default {
   border-color: white;
   border-style: none none solid none;
   border-width: 1px;
-  z-index: 99;
+  /*z-index: 99;*/
 }
 #header a {
   position: absolute;
@@ -233,9 +233,8 @@ export default {
   color: #fff;
   text-align: center;
   display: inline-block;
-  /* border-radius: 0%; */
   text-decoration: none;
-  z-index: 100;
+  /*z-index: 100;*/
 }
 #header a:hover {
   text-decoration: none;

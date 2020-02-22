@@ -2,11 +2,17 @@ import Vue from "vue";
 
 Vue.config.productionTip = true;  // false in production environemt
 
-import vuetify from './plugins/vuetify';
+// npm i typeface-roboto
+import "typeface-roboto/index.css";
 
-import App from "./App.vue";
+// npm i material-design-icons
+import "material-design-icons/iconfont/material-icons.css";
+
+import vuetify from "./plugins/vuetify";
+
+import Main from "./Main.vue";
 
 new Vue({
   vuetify,
-  render: h => h(App)
+  render: h => h(Main)
 }).$mount("#app");

@@ -34,15 +34,16 @@ if (config === null) {
   process.exit(1);
 }
 
+// express server
 const app = express();
 
-// set the template engine ejs
+// set the template engine as ejs
 app.set("view engine", "ejs");
 
 // set ./dist as a static contents root
 app.use(express.static("dist"));
 
-// routes
+// routes (for test purpose)
 app.get("/a", (req, res) => {
   res.render("index");
 });
@@ -277,3 +278,37 @@ io.on("connection", function(socket) {
     emitRoomUsers();
   });
 });
+
+
+const events = require("events");
+const Promise = require("bluebird");
+
+class Macro extends events.EventEmitter {
+  constructor() {
+    super();
+
+    this.shellPrompt = "/(?:\/ )?#\s/";
+    this.passwordPrompt = "/Password[: ]*$/i";
+    this.execTimeout = 2000;
+    this.sendTimeout = 2000;
+
+  }
+
+  exec(cmd, opts, callback) {
+    if (opts && opts instanceof Function) {
+      callback = opts;
+    }
+    return new Promise((resolve, reject) => {
+
+
+    }).asCallback(callback);
+  }
+
+}
+
+function search(str, pattern) {
+  if (pattern instanceof RegExp) {
+    return str.search(pattern);
+  }
+  return str.indexOf(pattern);
+}
